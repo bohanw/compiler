@@ -1,0 +1,22 @@
+#name "./escapedunprintables.cool"
+LEXER BUG - UNMATCHED: "
+LEXER BUG - UNMATCHED: T
+LEXER BUG - UNMATCHED: h
+LEXER BUG - UNMATCHED: i
+LEXER BUG - UNMATCHED: s
+LEXER BUG - UNMATCHED:  
+LEXER BUG - UNMATCHED: i
+LEXER BUG - UNMATCHED: s
+LEXER BUG - UNMATCHED:  
+LEXER BUG - UNMATCHED: a
+LEXER BUG - UNMATCHED:  
+LEXER BUG - UNMATCHED: t
+LEXER BUG - UNMATCHED: a
+LEXER BUG - UNMATCHED: b
+LEXER BUG - UNMATCHED: :
+LEXER BUG - UNMATCHED: \
+LEXER BUG - UNMATCHED: 	
+LEXER BUG - UNMATCHED: "
+Exception in thread "main" java.lang.Error: Lexical Error: Unmatched Input.
+	at CoolLexer.next_token(CoolLexer.java:288)
+	at Lexer.main(Lexer.java:43)

@@ -1,0 +1,614 @@
+
+#include <iostream>
+#include <map>
+#include <fstream>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdarg.h>
+#include "semant.h"
+#include "utilities.h"
+
+extern int semant_debug;
+extern char *curr_filename;
+
+static SymbolTable<Symbol, Symbol> attrList;
+ClassTable *classtbl;
+static ostream& semantic_error(Class_ c);
+static ostream& semantic_error(Symbol filename, tree_node *t);
+//
+typedef SymbolTable<Symbol, method_class> methodTable;
+//clas_name -> symtable(method_name, method_object)
+static std::map<Symbol, methodTable> methodsTable;
+static std::ofstream log; // semant checker info log
+
+
+std::map<Symbol, Class_> classMapping;
+
+static std::vector<Symbol> get_inherit_path(Class_ c);
+static bool class_define(Symbol class_name);
+void print_path(std::vector<Symbol> path) {
+	std::cout << "inherit path ";
+	for(std::vector<Symbol>::iterator it = path.begin();it != path.end();++it) {
+		std::cout << ' ' << *it;
+	}
+	std::cout << '\n' << std::endl;
+}
+//////////////////////////////////////////////////////////////////////
+//
+// Symbols
+//
+// For convenience, a large number of symbols are predefined here.
+// These symbols include the primitive type and method names, as well
+// as fixed names used by the runtime system.
+//
+//////////////////////////////////////////////////////////////////////
+static Symbol 
+    arg,
+    arg2,
+    Bool,
+    concat,
+    cool_abort,
+    copy,
+    Int,
+    in_int,
+    in_string,
+    IO,
+    length,
+    Main,
+    main_meth,
+    No_class,
+    No_type,
+    Object,
+    out_int,
+    out_string,
+    prim_slot,
+    self,
+    SELF_TYPE,
+    Str,
+    str_field,
+    substr,
+    type_name,
+    val;
+//
+// Initializing the predefined symbols.
+//
+static void initialize_constants(void)
+{
+    arg         = idtable.add_string("arg");
+    arg2        = idtable.add_string("arg2");
+    Bool        = idtable.add_string("Bool");
+    concat      = idtable.add_string("concat");
+    cool_abort  = idtable.add_string("abort");
+    copy        = idtable.add_string("copy");
+    Int         = idtable.add_string("Int");
+    in_int      = idtable.add_string("in_int");
+    in_string   = idtable.add_string("in_string");
+    IO          = idtable.add_string("IO");
+    length      = idtable.add_string("length");
+    Main        = idtable.add_string("Main");
+    main_meth   = idtable.add_string("main");
+    //   _no_class is a symbol that can't be the name of any 
+    //   user-defined class.
+    No_class    = idtable.add_string("_no_class");
+    No_type     = idtable.add_string("_no_type");
+    Object      = idtable.add_string("Object");
+    out_int     = idtable.add_string("out_int");
+    out_string  = idtable.add_string("out_string");
+    prim_slot   = idtable.add_string("_prim_slot");
+    self        = idtable.add_string("self");
+    SELF_TYPE   = idtable.add_string("SELF_TYPE");
+    Str         = idtable.add_string("String");
+    str_field   = idtable.add_string("_str_field");
+    substr      = idtable.add_string("substr");
+    type_name   = idtable.add_string("type_name");
+    val         = idtable.add_string("_val");
+}
+
+ostream& semantic_error(Class_ c){
+	return classtbl->semant_error(c);
+}
+
+ ostream& semantic_error(Symbol filename, tree_node *t){
+	return classtbl->semant_error(filename,t);
+}
+
+ std::vector<Symbol> get_inherit_path(Symbol class_name) {
+	return classtbl->get_path(class_name);
+}
+
+bool class_define(Symbol class_name) {
+	return classtbl->class_defined(class_name);
+}
+
+/////////////////////
+void ClassTable::printClassTable() {
+	for(std::map<Symbol, Class_>::iterator it = classMapping.begin();it!=classMapping.end();++it) {
+		Class_ c = it->second;
+		std::cout<< "Symbol " << it->first << "->  Class type :" << c->get_name() << std::endl;
+
+	}
+
+}
+
+////////////////////
+
+
+
+//
+std::vector<Symbol> ClassTable::get_path(Symbol class_name) {
+	std::vector<Symbol> path;
+	path.push_back(class_name);
+	Symbol s = get_parent(class_name);
+	while( s != NULL) {
+		path.push_back(s);
+		s = get_parent(s);
+	}
+	print_path(path);
+
+	return path;
+}
+
+
+
+ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
+
+    /* Fill this in */
+	install_basic_classes();
+
+	std::cout << " build tree" << std::endl;
+
+	//printClassTable();
+	for(int i = classes->first();classes->more(i); i = classes->next(i)) {
+		if(class_defined(classes->nth(i)->get_name())){
+			//class not inserted in the map
+
+			semant_error( classes->nth(i)) << "class " << classes->nth(i)->get_name() << " defined" << std::endl;
+		}
+
+		classMapping.insert(std::make_pair(classes->nth(i)->get_name(),classes->nth(i)));
+		add_pair(classes->nth(i)->get_name(),classes->nth(i)->get_parent());
+
+
+
+	}
+
+	if(classMapping.find(Main) == classMapping.end()) {
+		semant_error() << "Class main not found" << std::endl;
+	}
+
+	//Check if any inheritance violation(cyclic graph)
+	for(int i = classes->first();classes->more(i);i = classes->next(i)) {
+		Class_ curr = classes->nth(i);
+		Symbol parent = classes->nth(i)->get_parent();
+
+		while( parent != Object && parent != curr->get_name()) {
+
+			if(classMapping.find(parent) == classMapping.end()) {
+				semant_error() << " parent class not defined" << std::endl;
+				return;
+			}
+			if(parent == Int || parent == Str || parent == Bool || parent == SELF_TYPE) {
+				semant_error() << "cannot inherit basic class" << std::endl;
+				return;
+			}
+			std::cout << curr->get_name() << "<-" << parent << std::endl;
+			curr = classMapping[curr->get_parent()];
+			parent = curr->get_parent();
+
+		}
+
+		if(parent == Object) {
+			std::cout << curr->get_name() << " < " << parent << std::endl;
+
+		}
+		else {
+			semant_error() << "graph not acyclic" << std::endl;
+			return;
+		}
+	}
+
+
+}
+
+
+void ClassTable::install_basic_classes() {
+
+    // The tree package uses these globals to annotate the classes built below.
+   // curr_lineno  = 0;
+    Symbol filename = stringtable.add_string("<basic class>");
+    
+    // The following demonstrates how to create dummy parse trees to
+    // refer to basic Cool classes.  There's no need for method
+    // bodies -- these are already built into the runtime system.
+    
+    // IMPORTANT: The results of the following expressions are
+    // stored in local variables.  You will want to do something
+    // with those variables at the end of this method to make this
+    // code meaningful.
+
+    // 
+    // The Object class has no parent class. Its methods are
+    //        abort() : Object    aborts the program
+    //        type_name() : Str   returns a string representation of class name
+    //        copy() : SELF_TYPE  returns a copy of the object
+    //
+    // There is no need for method bodies in the basic classes---these
+    // are already built in to the runtime system.
+
+    Class_ Object_class =
+	class_(Object, 
+	       No_class,
+	       append_Features(
+			       append_Features(
+					       single_Features(method(cool_abort, nil_Formals(), Object, no_expr())),
+					       single_Features(method(type_name, nil_Formals(), Str, no_expr()))),
+			       single_Features(method(copy, nil_Formals(), SELF_TYPE, no_expr()))),
+	       filename);
+
+    // 
+    // The IO class inherits from Object. Its methods are
+    //        out_string(Str) : SELF_TYPE       writes a string to the output
+    //        out_int(Int) : SELF_TYPE            "    an int    "  "     "
+    //        in_string() : Str                 reads a string from the input
+    //        in_int() : Int                      "   an int     "  "     "
+    //
+    Class_ IO_class = 
+	class_(IO, 
+	       Object,
+	       append_Features(
+			       append_Features(
+					       append_Features(
+							       single_Features(method(out_string, single_Formals(formal(arg, Str)),
+										      SELF_TYPE, no_expr())),
+							       single_Features(method(out_int, single_Formals(formal(arg, Int)),
+										      SELF_TYPE, no_expr()))),
+					       single_Features(method(in_string, nil_Formals(), Str, no_expr()))),
+			       single_Features(method(in_int, nil_Formals(), Int, no_expr()))),
+	       filename);  
+
+    //
+    // The Int class has no methods and only a single attribute, the
+    // "val" for the integer. 
+    //
+    Class_ Int_class =
+	class_(Int, 
+	       Object,
+	       single_Features(attr(val, prim_slot, no_expr())),
+	       filename);
+
+    //
+    // Bool also has only the "val" slot.
+    //
+    Class_ Bool_class =
+	class_(Bool, Object, single_Features(attr(val, prim_slot, no_expr())),filename);
+
+    //
+    // The class Str has a number of slots and operations:
+    //       val                                  the length of the string
+    //       str_field                            the string itself
+    //       length() : Int                       returns length of the string
+    //       concat(arg: Str) : Str               performs string concatenation
+    //       substr(arg: Int, arg2: Int): Str     substring selection
+    //       
+    Class_ Str_class =
+	class_(Str, 
+	       Object,
+	       append_Features(
+			       append_Features(
+					       append_Features(
+							       append_Features(
+									       single_Features(attr(val, Int, no_expr())),
+									       single_Features(attr(str_field, prim_slot, no_expr()))),
+							       single_Features(method(length, nil_Formals(), Int, no_expr()))),
+					       single_Features(method(concat, 
+								      single_Formals(formal(arg, Str)),
+								      Str, 
+								      no_expr()))),
+			       single_Features(method(substr, 
+						      append_Formals(single_Formals(formal(arg, Int)), 
+								     single_Formals(formal(arg2, Int))),
+						      Str, 
+						      no_expr()))),
+	       filename);
+
+    classMapping.insert(std::make_pair(Object,Object_class));
+    classMapping.insert(std::make_pair(IO,IO_class));
+    classMapping.insert(std::make_pair(Int,Int_class));
+    classMapping.insert(std::make_pair(Str,Str_class));
+    classMapping.insert(std::make_pair(Bool,Bool_class));
+}
+
+////////////////////////////////////////////////////////////////////
+//
+// semant_error is an overloaded function for reporting errors
+// during semantic analysis.  There are three versions:
+//
+//    ostream& ClassTable::semant_error()                
+//
+//    ostream& ClassTable::semant_error(Class_ c)
+//       print line number and filename for `c'
+//
+//    ostream& ClassTable::semant_error(Symbol filename, tree_node *t)  
+//       print a line number and filename
+//
+///////////////////////////////////////////////////////////////////
+
+ostream& ClassTable::semant_error(Class_ c)
+{                                                             
+    return semant_error(c->get_filename(),c);
+}    
+
+ostream& ClassTable::semant_error(Symbol filename, tree_node *t)
+{
+    error_stream << filename << ":" << t->get_line_number() << ": ";
+    return semant_error();
+}
+
+ostream& ClassTable::semant_error()                  
+{                                                 
+    semant_errors++;                            
+    return error_stream;
+} 
+
+
+// ----Add features(method/attr) to the current class
+//  and enforce naming and scopes
+
+void method_class::add_feature(Class_ class_) {
+	Formals fml_list = get_formals();
+	Symbol class_name = class_->get_name();
+	//std::vector<Symbol> method_defined;
+	std::map<Symbol, Class_> classes = classMapping;
+	std::vector<Symbol> fml_params;
+	std::vector<Symbol>::iterator it;
+	//Check if method is already defined
+	if(methodsTable[class_name].lookup(get_name()) != NULL) {
+		semantic_error(class_->get_filename(),this) << "method already defined : " << get_name() << std::endl;
+	}
+	//check if return type is valid
+	Symbol ret_type = get_return_type();
+	std::cout << "ret type " << ret_type << std::endl;
+	bool test = class_define(ret_type);
+		//for(std::map<Symbol, Symbol>::iterator ite = c_p.begin();ite!=c_p.end();++ite) {
+
+	//	std::cout<< "child " << ite->first << "->  parent :" << ite->second << std::endl;
+
+	//}
+	//std::cout << classtbl->child_parent_map[ret_type] << std::endl;
+	//if(!class_define(ret_type)) {
+		//can't find definition of return type
+
+		//semantic_error(class_->get_filename(),this) <<"Return type of this method " << get_name() << " under class" << ret_type << " not find " << std::endl;
+
+	//}
+	//check formal list(whether they are distinct)
+	for(int i = fml_list->first();fml_list->more(i);i = fml_list->next(i)) {
+		Symbol curr_fml_name = fml_list->nth(i)->get_name();
+		it = std::find(fml_params.begin(),fml_params.end(),curr_fml_name);
+		if(it != fml_params.end()) {
+			semantic_error(class_->get_filename(),this) << "Formal identifier " << curr_fml_name <<  " exist " << std::endl;
+		}
+		fml_params.push_back(curr_fml_name);
+
+	}
+	methodsTable[class_name].addid(get_name(), new method_class(copy_Symbol(name),formals->copy_list(),copy_Symbol(return_type),expr->copy_Expression()));
+
+}
+void method_class::check_inherit(Class_ class_) {
+	std::vector<Symbol> path;
+	path = get_inherit_path(class_->get_name());
+	Symbol method_name = get_name();
+
+	std::map<Symbol, Class_> classes = classMapping;
+	//traverse inherit path and extract methods definition along all classes
+	for(std::vector<Symbol>::iterator it = path.begin(); it!= path.end();++it){
+
+		Class_ curr_class = classes[*it]; // notice dereference iterator to get actual object
+		methodTable methods = methodsTable[*it];
+		if(methods.lookup(method_name) != NULL){
+			std::cout << method_name << " method defined !!!" << std::endl;
+		}
+	}
+}
+
+void attr_class::add_feature(Class_ class_) {
+	Symbol attr_name = get_name();
+	Symbol class_name = class_->get_name();
+	std::cout << "name " << get_name() << std::endl;
+	std::cout << "class name " << class_->get_name() << std::endl;
+	std::map<Symbol, Class_> classes = classMapping;
+
+	//type cannot be self
+	if(get_name() == self) {
+		semantic_error(class_) << "Attr name cannot be self " << std::endl;
+	}
+	//Check if objId defined
+	if(objects_table[class_name].lookup(get_name()) != NULL) {
+		semantic_error(class_) <<"Attr identifier " << get_name() <<" Defined " << std::endl;
+
+	}
+
+	//Check if typeID not defined
+	Symbol ret_type = get_type_decl();
+	if(classes.find(ret_type) == classes.end() ) {
+		//NOT found
+		semantic_error(class_) <<"Attr  " << get_name()  << "With Type " << get_type_decl() <<" NOT Defined " << std::endl;
+	}
+
+
+	objects_table[class_name].addid(get_name(), new Symbol(get_type_decl()));
+
+}
+
+
+
+//Typechecking functions
+Symbol object_class::get_expr_type(Class_ class_) {
+
+	return NULL;
+}
+Symbol no_expr_class::get_expr_type(Class_ class_) {
+	Symbol type = No_type;
+	return type;
+}
+
+Symbol isvoid_class::get_expr_type(Class_ class_) {
+	Symbol type = get_e1()->get_expr_type(class_);
+	return type;
+}
+
+Symbol new__class::get_expr_type(Class_ class_) { return NULL;}
+Symbol string_const_class::get_expr_type(Class_ class_) {
+	Symbol type = Str;
+	return type;
+}
+Symbol bool_const_class::get_expr_type(Class_ class_) {
+	Symbol type = Bool;
+	return type;
+}
+Symbol int_const_class::get_expr_type(Class_ class_) {
+	Symbol type = Int;
+	return type;
+}
+
+
+Symbol comp_class::get_expr_type(Class_ class_) { return NULL;}
+Symbol leq_class::get_expr_type(Class_ class_) { return NULL;}
+Symbol eq_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol lt_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol neg_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol divide_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol mul_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol sub_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol plus_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol let_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol block_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol typcase_class::get_expr_type(Class_ class_) {return NULL;}
+
+Symbol loop_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol cond_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol dispatch_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol static_dispatch_class::get_expr_type(Class_ class_) {return NULL;}
+Symbol assign_class::get_expr_type(Class_ class_) {
+	//Symbol type;
+	if(get_name() == self){
+		semantic_error(class_->get_filename(),this) << "assign cannot be type self" << std::endl;
+		type = Object;
+		return type;
+	}
+
+	//check if type is not defined
+
+	return type;
+}
+
+
+
+
+
+
+
+
+/*   This is the entry point to the semantic checker.
+
+     Your checker should do the following two things:
+
+     1) Check that the program is semantically correct
+     2) Decorate the abstract syntax tree with type information
+        by setting the `type' field in each Expression node.
+        (see `tree.h')
+
+     You are free to first do 1), make sure you catch all semantic
+     errors. Part 2) can be done in a second stage, when you want
+     to build mycoolc.
+ */
+void program_class::semant()
+{
+    initialize_constants();
+
+    //**TESTING
+
+    log.open("out.txt");
+    //*********
+    /* ClassTable constructor may do some semantic analysis */
+    ClassTable *classtable = new ClassTable(classes);
+
+    if (classtable->errors()) {
+    	cerr << "Compilation halted due to static semantic errors." << endl;
+    	exit(1);
+    }
+
+
+    //Traverse class maps con
+    std::map<Symbol,Class_> classes = classMapping;
+    /*
+    for(std::map<Symbol, Class_>::iterator it = classes.begin();it!=classes.end();++it) {
+    	Symbol curr_class_name = it->first;
+    	Class_ curr_class = it->second;
+    	Features feat_list = curr_class->get_features();
+    	methodsTable[curr_class_name].enterscope();
+    	attrList.enterscope();
+    	for(int j = feat_list->first();feat_list->more(j);j = feat_list->next(j)){
+    		Feature f = feat_list->nth(j);
+    	    if(f->isMethod()) {
+    	    	//meet a method class
+    	    	f->add_method(curr_class_name);
+    	    	log << "This is a method " << f->get_name() << " under class " << curr_class->get_name() << std::endl;
+
+    	    }
+    	    else {
+    	    	//This feature is an attr
+    	    	Symbol s = feat_list-> nth(j) -> get_name();
+    	    	f->add_attr(curr_class_name);
+    	        //attrList.dump();
+    	    	Symbol* decl = attrList.lookup(s);
+    	    	log<<"This is a attr " << s << " under class "<< curr_class->get_name() << " with type " << decl << std::endl;
+    	    }
+
+    	}
+    	attrList.exitscope();
+    }
+	*/
+    int cnt = 0;
+    for(std::map<Symbol, Class_>::iterator it = classes.begin();it!=classes.end();++it) {
+    	Symbol curr_class_name = it->first;
+    	Class_ curr_class = it->second;
+    	Features feat_list = curr_class->get_features();
+    	int featcnt = 0;
+
+    	methodsTable[curr_class_name].enterscope();
+    	objects_table[curr_class_name].enterscope();
+    	std::cout <<  "ite: " << cnt << " class name " << curr_class_name << std::endl;
+    	/*for(int j = feat_list->first();feat_list->more(j);j = feat_list->next(j)){
+    	    		Feature f = feat_list->nth(j);
+    	    		//f->dump(std::cout,2);
+    	    		std::cout <<  "feat_idx:  " << featcnt << " feature_name " << f->get_name()  << " in class " <<curr_class_name << std::endl;
+    	    		featcnt++;
+    	}*/
+
+    	//add object "Self"
+    	//objects_table[curr_class_name].addid(self,new Symbol(SELF_TYPE));
+
+    	for(int j = feat_list->first();feat_list->more(j);j = feat_list->next(j)){
+    		Feature f = feat_list->nth(j);
+    		featcnt++;
+    		std::cout  << "This is feature " << f->get_name() << " under class " << curr_class_name << std::endl;
+    		f->add_feature(curr_class);
+
+    	}
+
+    	cnt++;
+    }
+
+    /* some semantic analysis code may go here */
+
+
+    if (classtable->errors()) {
+    	cerr << "Compilation halted due to static semantic errors." << endl;
+    	exit(1);
+    }
+
+}
+
+

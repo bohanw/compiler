@@ -1,0 +1,65 @@
+#1
+_program
+  #1
+  _class
+    Foo
+    Object
+    "unaryassociativity.test"
+    (
+    #1
+    _method
+      bar
+      Int
+      #1
+      _block
+        #1
+        _plus
+          #1
+          _isvoid
+            #1
+            _object
+              a
+            : _no_type
+          : _no_type
+          #1
+          _mul
+            #1
+            _object
+              b
+            : _no_type
+            #1
+            _object
+              c
+            : _no_type
+          : _no_type
+        : _no_type
+        #1
+        _comp
+          #1
+          _lt
+            #1
+            _object
+              a
+            : _no_type
+            #1
+            _object
+              b
+            : _no_type
+          : _no_type
+        : _no_type
+        #1
+        _plus
+          #1
+          _neg
+            #1
+            _object
+              a
+            : _no_type
+          : _no_type
+          #1
+          _object
+            b
+          : _no_type
+        : _no_type
+      : _no_type
+    )

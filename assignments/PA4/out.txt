@@ -1,0 +1,50 @@
+ build tree
+A < Object
+B<-A
+A < Object
+C<-A
+A < Object
+Main < Object
+ build ClassTable complete 
+This is a feat a under class A
+This is a feat d under class A
+This is a feat f under class A
+This is a feat abort under class Object
+This is a feat type_name under class Object
+This is a feat copy under class Object
+This is a feat _val under class Int
+This is a feat b under class B
+This is a feat f under class B
+This is a feat g under class B
+This is a feat c under class C
+This is a feat h under class C
+This is a feat main under class Main
+This is a feat _val under class Bool
+This is a feat out_string under class IO
+This is a feat out_int under class IO
+This is a feat in_string under class IO
+This is a feat in_int under class IO
+This is a feat _val under class String
+This is a feat _str_field under class String
+This is a feat length under class String
+This is a feat concat under class String
+This is a feat substr under class String
+Check violation in method inhertiance
+ 
+this feat is method f 
+inherit path  A Object
+
+fml size 0
+fml size 0
+inherit path  A Object
+
+attr tpye Int
+attr tpye Int
+inherit path  Object
+
+inherit path  Int
+
+attr tpye _prim_slot
+inherit path  B A Object
+
+attr tpye Int

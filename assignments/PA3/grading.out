@@ -1,0 +1,17 @@
+Grading .....
+make: Entering directory '/usr/class/cs143/cool/assignments/PA3'
+make: 'parser' is up to date.
+make: Leaving directory '/usr/class/cs143/cool/assignments/PA3'
+=====================================================================
+submission: ..
+
+	-1 (firstclasserrored)	 error recovery after a bad class declaration
+	-1 (multipleclasses)	 multiple classes in a file
+	-1 (unaryassociativity)	 tests associativity of unary operators
+	-1 (while)	 valid and invalid while loops
+=====================================================================
+You got a score of 66 out of 70.
+
+Submit code: 
+66:3295c76acbf4caaed33c36b1b5fc2cb1
+

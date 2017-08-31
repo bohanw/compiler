@@ -1,0 +1,96 @@
+ build tree
+Main < Object
+A < Object
+B < Object
+C < Object
+ build ClassTable complete 
+This is a feat main under class Main
+This is a feat abort under class Object
+This is a feat type_name under class Object
+This is a feat copy under class Object
+This is a feat _val under class Int
+This is a feat inky under class A
+This is a feat winky under class B
+This is a feat binky under class C
+This is a feat _val under class Bool
+This is a feat out_string under class IO
+This is a feat out_int under class IO
+This is a feat in_string under class IO
+This is a feat in_int under class IO
+This is a feat _val under class String
+This is a feat _str_field under class String
+This is a feat length under class String
+This is a feat concat under class String
+This is a feat substr under class String
+Check violation in method inhertiance
+ 
+this feat is method main 
+inherit path  Main Object
+
+fml size 0
+fml size 0
+this feat is method abort 
+inherit path  Object
+
+fml size 0
+fml size 0
+this feat is method type_name 
+inherit path  Object
+
+fml size 0
+fml size 0
+this feat is method copy 
+inherit path  Object
+
+fml size 0
+fml size 0
+this feat is method inky 
+inherit path  A Object
+
+fml size 0
+fml size 0
+this feat is method winky 
+inherit path  B Object
+
+fml size 0
+fml size 0
+this feat is method binky 
+inherit path  C Object
+
+fml size 0
+fml size 0
+this feat is method out_string 
+inherit path  IO
+
+fml size 1
+fml size 1
+this feat is method out_int 
+inherit path  IO
+
+fml size 1
+fml size 1
+this feat is method in_string 
+inherit path  IO
+
+fml size 0
+fml size 0
+this feat is method in_int 
+inherit path  IO
+
+fml size 0
+fml size 0
+this feat is method length 
+inherit path  String
+
+fml size 0
+fml size 0
+this feat is method concat 
+inherit path  String
+
+fml size 1
+fml size 1
+this feat is method substr 
+inherit path  String
+
+fml size 2
+fml size 2

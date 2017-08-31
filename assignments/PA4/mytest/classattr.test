@@ -1,0 +1,26 @@
+class A {
+
+  a: Int <- 0 ;
+  d: Int <- 2; 
+ 
+  
+};
+
+class B {
+  b: Int <- 2;
+  c : String <- "haha";
+};
+
+class C inherits A  {
+	e : Int <- 10;
+	f: Int <- 1;
+};
+
+class D inherits C {
+	g : Int <- 1;
+};
+
+class E inherits A {
+	z : Int <- 20;
+};
+class Main { main () : Int { 6 }; };

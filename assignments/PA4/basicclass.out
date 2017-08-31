@@ -1,0 +1,91 @@
+ build tree
+A< Object
+B< Object
+C< Object
+Main< Object
+#1
+_program
+  #1
+  _class
+    A
+    Object
+    "./mytest/classattr.test"
+    (
+    #1
+    _attr
+      a
+      Int
+      #1
+      _int
+        0
+      : _no_type
+    #1
+    _attr
+      d
+      Int
+      #1
+      _int
+        1
+      : _no_type
+    )
+  #1
+  _class
+    B
+    Object
+    "./mytest/classattr.test"
+    (
+    #1
+    _attr
+      b
+      Int
+      #1
+      _int
+        2
+      : _no_type
+    #1
+    _attr
+      c
+      Str
+      #1
+      _string
+        "haha"
+      : _no_type
+    )
+  #1
+  _class
+    C
+    Object
+    "./mytest/classattr.test"
+    (
+    #1
+    _attr
+      c
+      Int
+      #1
+      _int
+        3
+      : _no_type
+    #1
+    _attr
+      g
+      Str
+      #1
+      _string
+        "fffff"
+      : _no_type
+    )
+  #1
+  _class
+    Main
+    Object
+    "./mytest/classattr.test"
+    (
+    #1
+    _method
+      main
+      Int
+      #1
+      _int
+        6
+      : _no_type
+    )

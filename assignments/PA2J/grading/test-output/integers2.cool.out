@@ -1,0 +1,6 @@
+#name "./integers2.cool"
+LEXER BUG - UNMATCHED: 0
+LEXER BUG - UNMATCHED: 1
+Exception in thread "main" java.lang.Error: Lexical Error: Unmatched Input.
+	at CoolLexer.next_token(CoolLexer.java:288)
+	at Lexer.main(Lexer.java:43)

@@ -1,0 +1,13 @@
+#name "./s34.test.cool"
+LEXER BUG - UNMATCHED: b
+LEXER BUG - UNMATCHED: e
+LEXER BUG - UNMATCHED: f
+LEXER BUG - UNMATCHED: o
+LEXER BUG - UNMATCHED: r
+LEXER BUG - UNMATCHED: e
+LEXER BUG - UNMATCHED: _
+LEXER BUG - UNMATCHED: i
+LEXER BUG - UNMATCHED: t
+Exception in thread "main" java.lang.Error: Lexical Error: Unmatched Input.
+	at CoolLexer.next_token(CoolLexer.java:288)
+	at Lexer.main(Lexer.java:43)

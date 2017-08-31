@@ -1,0 +1,18 @@
+class A {
+
+  a: Int <- 0;
+  d: Int <- 1;
+ 
+  
+};
+
+class B {
+  b: Int <- 2;
+  c : Str <- "haha";
+};
+
+class C  {
+   c: Int <- 3;
+   g: Str <- "fffff";
+}; 
+class Main { main () : Int { 6 }; };
